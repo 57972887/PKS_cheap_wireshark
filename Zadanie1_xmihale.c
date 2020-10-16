@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +17,18 @@ struct List {		// štruktúra spájaného zoznamu, ktorá uchováva jednotlivé ip adre
 	unsigned int count;		// príslušné èíslo k ip adrese, ktoré oznaèuje ko¾ko krát sa daná ip adresa v .pcap súbore nachádza
 	struct List* next;		// smerník na ïalší záznam
 };
+
+void strfcat(char* source, char* format, ...) {
+	char buffer[2048];
+	va_list args;
+	
+	va_start(args, format);
+	vsprintf(buffer, format, args);
+	va_end(args);
+	
+	strcat(source, buffer);
+}
+
 
 unsigned int convert_ip(char* string_ip) {		// funkcia konvertuje textovú formu ip adresy na èíselnú, aby sa mohla zapísa do spájaného zoznamu
 	
@@ -85,65 +98,65 @@ unsigned char* cut_mac_address(int start, unsigned char* buffer) {		// funkcia, 
 	return result;	// návratová hodnota obsahuje prekopírovanú mac adresu z buffera
 }
 
-void print_hex(int number, FILE* output) {		// funkcia konvertuje decimálne èíslo na hexadecimálne, resp. vytlaèí miesto decimálneho èísla hexadecimálne
+void print_hex(int number, char* line_buffer) {		// funkcia konvertuje decimálne èíslo na hexadecimálne, resp. vytlaèí miesto decimálneho èísla hexadecimálne
 		switch(number) {
 		case (10) :
-			fprintf(output, "A");	// ak sa poadovaná èíslo rovná 10 vytlaè písmeno A
+			strfcat(line_buffer, "A");	// ak sa poadovaná èíslo rovná 10 vytlaè písmeno A
 			break;
 		case (11) :
-			fprintf(output, "B");	// ak sa poadovaná èíslo rovná 11 vytlaè písmeno B
+			strfcat(line_buffer, "B");	// ak sa poadovaná èíslo rovná 11 vytlaè písmeno B
 			break;
 		case (12) :
-			fprintf(output, "C");	// ak sa poadovaná èíslo rovná 12 vytlaè písmeno C
+			strfcat(line_buffer, "C");	// ak sa poadovaná èíslo rovná 12 vytlaè písmeno C
 			break;
 		case (13) :
-			fprintf(output, "D");	// ak sa poadovaná èíslo rovná 13 vytlaè písmeno D
+			strfcat(line_buffer, "D");	// ak sa poadovaná èíslo rovná 13 vytlaè písmeno D
 			break;
 		case (14) :
-			fprintf(output, "E");	// ak sa poadovaná èíslo rovná 14 vytlaè písmeno E
+			strfcat(line_buffer, "E");	// ak sa poadovaná èíslo rovná 14 vytlaè písmeno E
 			break;
 		case (15) :
-			fprintf(output, "F");	// ak sa poadovaná èíslo rovná 15 vytlaè písmeno F
+			strfcat(line_buffer, "F");	// ak sa poadovaná èíslo rovná 15 vytlaè písmeno F
 			break;
 		default :
-			fprintf(output, "%d", number);	// v opaènom prípade vytlaè zodpovedajúce èíslo
+			strfcat(line_buffer, "%d", number);	// v opaènom prípade vytlaè zodpovedajúce èíslo
 	}
 }
 
-void print_byte(unsigned char byte, const char symbol, FILE* output) {		// funkcia vytlaèí konkrétny bajt, argument symbol slúi ako rozde¾ovaè medzi jednotlivımi bajtmi
+void print_byte(unsigned char byte, const char symbol, char* line_buffer) {		// funkcia vytlaèí konkrétny bajt, argument symbol slúi ako rozde¾ovaè medzi jednotlivımi bajtmi
 	short mask = 240;		// maska hornıch 4 bitov, bitovo = 1111 0000
 	short high = (mask & byte) >> 4;	// vypoèítanie hornıch 4 bitov
 	short low = 15 & byte;	// vypoèítanie dolnıch 4 bitov
-	print_hex(high, output);	// vytlaèenie hornıch 4 bitov v hexadecimálnom tvare
-	print_hex(low, output);		// vytlaèenie dolnıch 4 bitov v hexadecimálnom tvare
-	fprintf(output, "%c", symbol);	// vytlaèenie poadovaného znaku z argumentov
+	print_hex(high, line_buffer);	// vytlaèenie hornıch 4 bitov v hexadecimálnom tvare
+	print_hex(low, line_buffer);		// vytlaèenie dolnıch 4 bitov v hexadecimálnom tvare
+	strfcat(line_buffer, "%c", symbol);	// vytlaèenie poadovaného znaku z argumentov
 }
 
-void print_mac(char type, unsigned char* mac_address, FILE * output) {		// funkcia vytlaèí mac adresu na obrazovku
+void print_mac(char type, unsigned char* mac_address, char* line_buffer) {		// funkcia vytlaèí mac adresu na obrazovku
 	short i = 0;		// inicializácia pomocnej premennej, ktorá poslúi pre cyklus
-	if (type==0) fprintf(output, "Source MAC --> ");		// ak sa typ argumentu rovná nule, tak sa bude tlaèi zdrojová mac adresa
-	else if (type==1) fprintf(output, "Destination MAC --> ");	// v opaènom prípade sa bude tlaèi cielová mac adresa
+	if (type==0) strfcat(line_buffer, "Source MAC --> ");		// ak sa typ argumentu rovná nule, tak sa bude tlaèi zdrojová mac adresa
+	else if (type==1) strfcat(line_buffer, "Destination MAC --> ");	// v opaènom prípade sa bude tlaèi cielová mac adresa
 	for (i = 0; i < 6; i++) {	// cyklus
-		if (i==5) print_byte(mac_address[i], '\0', output); 	// ak sa jedná o vytlaèenie posledného bajtu, tak za mac adresov sa vytlaèí prádny znak
-		else print_byte(mac_address[i], ':', output);	// v opaènom prípade za koncom bajtu sa vytlaèí znak :
+		if (i==5) print_byte(mac_address[i], '\0', line_buffer); 	// ak sa jedná o vytlaèenie posledného bajtu, tak za mac adresov sa vytlaèí prádny znak
+		else print_byte(mac_address[i], ':', line_buffer);	// v opaènom prípade za koncom bajtu sa vytlaèí znak :
 	}
-	if (type != 2) fprintf(output, "\n");	// posunutie na novı riadok
+	if (type != 2) strfcat(line_buffer, "\n");	// posunutie na novı riadok
 }
 
-void print_frame(int start, unsigned char* buffer, int frame_length, FILE * output) {		// funkcia vytlaèí celı rámec pod¾a zaèiatku rámca a celkovej dåky rámca
+void print_frame(int start, unsigned char* buffer, int frame_length, char* line_buffer) {		// funkcia vytlaèí celı rámec pod¾a zaèiatku rámca a celkovej dåky rámca
 	int i = 0;		// inicializácia pomocnej premennej
 	short byte_counter = 0;		// inicializácia premennej na poèítanie bajtov
 	
 	for (i = start; i < start + frame_length; i++) {	// cyklus, ktorı bude tlaèi jednotlivé bajty
-		if (byte_counter == 8) fprintf(output, " ");		// ak sa poèítadlo bajtov rovná 8, tak vytlaè medzeru
+		if (byte_counter == 8) strfcat(line_buffer, " ");		// ak sa poèítadlo bajtov rovná 8, tak vytlaè medzeru
 		if (byte_counter == 16) {		// ak sa poèítadlo bajtov rovná 16
-			fprintf(output, "\n");		// prejdi na novı riadok
+			strfcat(line_buffer, "\n");		// prejdi na novı riadok
 			byte_counter = 0;	// natav poèítadlo bajtov na 0
 		}
-		print_byte(buffer[i], ' ', output);		// vytlaè bajt na pozicií i
+		print_byte(buffer[i], ' ', line_buffer);		// vytlaè bajt na pozicií i
 		byte_counter ++;	// inkrementuj poèítadlo bajtov
 	}
-	fprintf(output, "\n\n");		// prejdi na novı riadok
+	strfcat(line_buffer, "\n\n");		// prejdi na novı riadok
 }
 
 unsigned short cut_type(int start, unsigned char* buffer) {		// funkcia vystrihne z buffera typ èíslo, ktoré bude pouíté ako typ protokolu
@@ -262,162 +275,160 @@ char* get_ip(int start, unsigned char* buffer) {		// funkcia vráti string s ip a
 #define RST 4
 #define PSH 8
 #define ACK 16
-void print_tcp_flags(unsigned char tcp_flags, FILE* output) {		// funckia vytlaèí na základe parametrov všetky flagy tcp protokolu
-	if (tcp_flags & FIN) fprintf(output, " [FIN]");
-	if (tcp_flags & SYN) fprintf(output, " [SYN]");
-	if (tcp_flags & RST) fprintf(output, " [RST]");
-	if (tcp_flags & PSH) fprintf(output, " [PSH]");
-	if (tcp_flags & ACK) fprintf(output, " [ACK]");
+void print_tcp_flags(unsigned char tcp_flags, char* line_buffer) {		// funckia vytlaèí na základe parametrov všetky flagy tcp protokolu
+	if (tcp_flags & FIN) strfcat(line_buffer, " [FIN]");
+	if (tcp_flags & SYN) strfcat(line_buffer, " [SYN]");
+	if (tcp_flags & RST) strfcat(line_buffer, " [RST]");
+	if (tcp_flags & PSH) strfcat(line_buffer, " [PSH]");
+	if (tcp_flags & ACK) strfcat(line_buffer, " [ACK]");
 	
-	fprintf(output, "\n");	// na konci sa vytlaèí znak nového riadku
+	strfcat(line_buffer, "\n");	// na konci sa vytlaèí znak nového riadku
 }
 
-void print_tcp(int start, unsigned char* buffer, FILE* output) {		// funkcia vytlaèí na základe èísiel portov príslušné vnorené tcp protokoly
+void print_tcp(int start, unsigned char* buffer, char* line_buffer) {		// funkcia vytlaèí na základe èísiel portov príslušné vnorené tcp protokoly
 	unsigned short source_port = (short) (buffer[start] << 8) + buffer[start + 1];		// inicializácia a nastavenie zdrojvého portu
 	unsigned short destination_port = (short) (buffer[start + 2] << 8) + buffer[start + 3];	// inicializácia a nastavenie cielového portu
 	char* protocol_name_src = get_protocol_name(source_port);	// priradenie názvu protokolu pod¾a èísla zdrojového portu
 	char* protocol_name_dst = get_protocol_name(destination_port);	// priradenie názvu protokolu pod¾a èísla cielového portu
 	
 	if ((strcmp(protocol_name_src, "FTP_DATA")) == 0 || (strcmp(protocol_name_dst, "FTP_DATA")) == 0) {
-		fprintf(output, "FTP_DATA (File Transfer Protocol)\n");
+		strfcat(line_buffer, "FTP_DATA (File Transfer Protocol)\n");
 	}
 	else if ((strcmp(protocol_name_src, "FTP_CONTROL")) == 0 || (strcmp(protocol_name_dst, "FTP_CONTROL")) == 0) {
-		fprintf(output, "FTP_CONTROL (File Transfer Protocol)\n");
+		strfcat(line_buffer, "FTP_CONTROL (File Transfer Protocol)\n");
 	}
 	else if ((strcmp(protocol_name_src, "SSH")) == 0 || (strcmp(protocol_name_dst, "SSH")) == 0) {
-		fprintf(output, "SSH (Secure Shell)\n");
+		strfcat(line_buffer, "SSH (Secure Shell)\n");
 	}
 	else if ((strcmp(protocol_name_src, "TELNET")) == 0 || (strcmp(protocol_name_dst, "TELNET")) == 0) {
-		fprintf(output, "TELNET\n");
+		strfcat(line_buffer, "TELNET\n");
 	}
 	else if ((strcmp(protocol_name_src, "HTTP")) == 0 || (strcmp(protocol_name_dst, "HTTP")) == 0) {
-		fprintf(output, "HTTP (Hypertext Transfer Protocol)\n");
+		strfcat(line_buffer, "HTTP (Hypertext Transfer Protocol)\n");
 	}
 	else if ((strcmp(protocol_name_src, "NETBIOS_SES")) == 0 || (strcmp(protocol_name_dst, "NETBIOS_SES")) == 0) {
-		fprintf(output, "NetBIOS Session Service\n");
+		strfcat(line_buffer, "NetBIOS Session Service\n");
 	}
 	else if ((strcmp(protocol_name_src, "HTTPS")) == 0 || (strcmp(protocol_name_dst, "HTTPS")) == 0) {
-		fprintf(output, "HTTPS (Hypertext Transfer Protocol Secure)\n");
+		strfcat(line_buffer, "HTTPS (Hypertext Transfer Protocol Secure)\n");
 	}
 	
 	free(protocol_name_src);	// uvo¾nenie pamäti
 	free(protocol_name_dst);	// uvo¾nenie pamäti
-	fprintf(output, "Source Port --> %d\n", source_port);	// vytlaèenie èísla zdrojového portu
-	fprintf(output, "Destination Port --> %d\n", destination_port);	// vytlaèenie èísla cie¾ového portu
+	strfcat(line_buffer, "Source Port --> %d\n", source_port);	// vytlaèenie èísla zdrojového portu
+	strfcat(line_buffer, "Destination Port --> %d\n", destination_port);	// vytlaèenie èísla cie¾ového portu
 }
 
-void print_udp(int start, unsigned char* buffer, FILE* output) {	// funkcia vytlaèí na základe èísiel portov príslušné vnorené udp protokoly
+void print_udp(int start, unsigned char* buffer, char* line_buffer) {	// funkcia vytlaèí na základe èísiel portov príslušné vnorené udp protokoly
 	unsigned short source_port = (short) (buffer[start] << 8) + buffer[start + 1];		// inicializácia a nastavenie zdrojvého portu
 	unsigned short destination_port = (short) (buffer[start + 2] << 8) + buffer[start + 3];		// inicializácia a nastavenie cielového portu
 	char* protocol_name_src = get_protocol_name(source_port);		// priradenie názvu protokolu pod¾a èísla zdrojového portu
 	char* protocol_name_dst = get_protocol_name(destination_port);		// priradenie názvu protokolu pod¾a èísla cielového portu
 	
 	if ((strcmp(protocol_name_src, "DNS")) == 0 || (strcmp(protocol_name_dst, "DNS")) == 0) {
-		fprintf(output, "DNS (Domain Name System)\n");
+		strfcat(line_buffer, "DNS (Domain Name System)\n");
 	}
 	else if ((strcmp(protocol_name_src, "DHCP")) == 0 || (strcmp(protocol_name_dst, "DHCP")) == 0) {
-		fprintf(output, "DHCP (Dynamic Host Configuration Protocol) ");
+		strfcat(line_buffer, "DHCP (Dynamic Host Configuration Protocol) ");
 		unsigned short dhcp_type = buffer[start + 250];
-		if (dhcp_type == 1) fprintf(output, "- Discover\n");
-		else if (dhcp_type == 2) fprintf(output, "- Offer\n");
-		else if (dhcp_type == 3) fprintf(output, "- Request\n");
-		else if (dhcp_type == 5) fprintf(output, "- ACK\n");
-		else fprintf(output, "\n");
+		if (dhcp_type == 1) strfcat(line_buffer, "- Discover\n");
+		else if (dhcp_type == 2) strfcat(line_buffer, "- Offer\n");
+		else if (dhcp_type == 3) strfcat(line_buffer, "- Request\n");
+		else if (dhcp_type == 5) strfcat(line_buffer, "- ACK\n");
+		else strfcat(line_buffer, "\n");
 	}
 	else if ((strcmp(protocol_name_src, "TFTP")) == 0 || (strcmp(protocol_name_dst, "TFTP")) == 0) {
-		fprintf(output, "TFTP (Trivial File Transfer Protocol)\n");
+		strfcat(line_buffer, "TFTP (Trivial File Transfer Protocol)\n");
 	}
 	else if ((strcmp(protocol_name_src, "NBNS")) == 0 || (strcmp(protocol_name_dst, "NBNS")) == 0) {
-		fprintf(output, "NetBIOS Name Service\n");
+		strfcat(line_buffer, "NetBIOS Name Service\n");
 	}
 	else if ((strcmp(protocol_name_src, "NETBIOS_DGRAM")) == 0 || (strcmp(protocol_name_dst, "NETBIOS_DGRAM")) == 0) {
-		fprintf(output, "NetBIOS Datagram Service\n");
+		strfcat(line_buffer, "NetBIOS Datagram Service\n");
 	}
 	else if ((strcmp(protocol_name_src, "SNMP")) == 0 || (strcmp(protocol_name_dst, "SNMP")) == 0) {
-		fprintf(output, "SNMP (Simple Network Management Protocol)\n");
+		strfcat(line_buffer, "SNMP (Simple Network Management Protocol)\n");
 	}
 	else if ((strcmp(protocol_name_src, "RIPv")) == 0 || (strcmp(protocol_name_dst, "RIPv")) == 0) {
-		fprintf(output, "RIPv%d (Routing Information Protocol version %d)\n", buffer[start + 9], buffer[start + 9]);
+		strfcat(line_buffer, "RIPv%d (Routing Information Protocol version %d)\n", buffer[start + 9], buffer[start + 9]);
 	}
 	else if ((strcmp(protocol_name_src, "SSDP")) == 0 || (strcmp(protocol_name_dst, "SSDP")) == 0) {
-		fprintf(output, "SSDP (Simple Service Discovery Protocol)\n");
+		strfcat(line_buffer, "SSDP (Simple Service Discovery Protocol)\n");
 	}
 	else if ((strcmp(protocol_name_src, "MDNS")) == 0 || (strcmp(protocol_name_dst, "MDNS")) == 0) {
-		fprintf(output, "MDNS (Multicast DNS)\n");
+		strfcat(line_buffer, "MDNS (Multicast DNS)\n");
 	}
 	else if ((strcmp(protocol_name_src, "LLMNR")) == 0 || (strcmp(protocol_name_dst, "LLMNR")) == 0) {
-		fprintf(output, "LLMNR (Link-Local Multicast Name Resolution)\n");
+		strfcat(line_buffer, "LLMNR (Link-Local Multicast Name Resolution)\n");
 	}
 	else if ((strcmp(protocol_name_src, "HSRP")) == 0 || (strcmp(protocol_name_dst, "HSRP")) == 0) {
-		fprintf(output, "HSRP (Cisco Hot Standby Router Protocol)\n");	
+		strfcat(line_buffer, "HSRP (Cisco Hot Standby Router Protocol)\n");	
 	}
 	
 	free(protocol_name_src);	// uvo¾nenie pamäti
 	free(protocol_name_dst);	// uvo¾nenie pamäti
-	fprintf(output, "Source Port --> %d\n", source_port);		// vytlaèenie èísla zdrojového portu
-	fprintf(output, "Destination Port --> %d\n", destination_port);		// vytlaèenie èísla cie¾ového portu
+	strfcat(line_buffer, "Source Port --> %d\n", source_port);		// vytlaèenie èísla zdrojového portu
+	strfcat(line_buffer, "Destination Port --> %d\n", destination_port);		// vytlaèenie èísla cie¾ového portu
 }
 
-void print_icmp(int start, unsigned char* buffer, FILE* output) {		// funkcia vytlaèí podrobnosti o protokole ICMP
-	fprintf(output, " - Type --> ");		// vytlaèenie textu
+void print_icmp(int start, unsigned char* buffer, char* line_buffer) {		// funkcia vytlaèí podrobnosti o protokole ICMP
+	strfcat(line_buffer, " - Type --> ");		// vytlaèenie textu
 	char icmp_type = buffer[start];		// nastavenie premennej type 
 	char icmp_code = buffer[start + 1];		// nastavenie premennej code
 	
-	if (icmp_type == 0) fprintf(output, "Reply");
+	if (icmp_type == 0) strfcat(line_buffer, "Reply");
 	else if (icmp_type == 3) {
-		fprintf(output, "Destination Unreachable");
-		if (icmp_code == 0) fprintf(output, " -- Net Unreachable");
-		else if (icmp_code == 1) fprintf(output, " -- Host Unreachable");
-		else if (icmp_code == 2) fprintf(output, " -- Protocol Unreachable");
-		else if (icmp_code == 3) fprintf(output, " -- Port Unreachable");
+		strfcat(line_buffer, "Destination Unreachable");
+		if (icmp_code == 0) strfcat(line_buffer, " -- Net Unreachable");
+		else if (icmp_code == 1) strfcat(line_buffer, " -- Host Unreachable");
+		else if (icmp_code == 2) strfcat(line_buffer, " -- Protocol Unreachable");
+		else if (icmp_code == 3) strfcat(line_buffer, " -- Port Unreachable");
 	}
-	else if (icmp_type == 5) fprintf(output, "Redirect");
-	else if (icmp_type == 8) fprintf(output, "Request");
+	else if (icmp_type == 5) strfcat(line_buffer, "Redirect");
+	else if (icmp_type == 8) strfcat(line_buffer, "Request");
 	else if (icmp_type == 11) {
-		fprintf(output, "Time Exceeded");
-		if (icmp_code == 0) fprintf(output, " -- Time to Live Exceeded in Transit");
-		else if (icmp_code == 1) fprintf(output, " -- Fragment Reassembly Time Exceeded");
+		strfcat(line_buffer, "Time Exceeded");
+		if (icmp_code == 0) strfcat(line_buffer, " -- Time to Live Exceeded in Transit");
+		else if (icmp_code == 1) strfcat(line_buffer, " -- Fragment Reassembly Time Exceeded");
 	}
-	else if (icmp_type == 30) fprintf(output, "Traceroute");
-	fprintf(output, "\n");		// vytlaèenie ukonèovacieho znaku
+	else if (icmp_type == 30) strfcat(line_buffer, "Traceroute");
+	strfcat(line_buffer, "\n");		// vytlaèenie ukonèovacieho znaku
 }
 
-void print_ethernet_ip_protocol(int start, unsigned char* buffer, struct List** ip_list, FILE* output) {	// funkcia vytlaèí podrobnosti o IP prípadne aj vnorené protokoly pod IP
+void print_ethernet_ip_protocol(int start, unsigned char* buffer, struct List** ip_list, char* line_buffer) {	// funkcia vytlaèí podrobnosti o IP prípadne aj vnorené protokoly pod IP
 	char ip_info = buffer[start];		// nastavenie premennej ip info
 	char ip_info_high = (ip_info >> 4) & 15;		// osamostatnenie hornıch 4 bitov
 	char ip_info_low = ip_info & 15;		// osamostatnenie dolnıch 4 bitov
 	if (ip_info_high == 4) {
-		fprintf(output, "\nIPv4 (IHL %d)\n", ip_info_low);		// vypísanie informácií o IPv4
+		strfcat(line_buffer, "\nIPv4 (IHL %d)\n", ip_info_low);		// vypísanie informácií o IPv4
 	}
-	fprintf(output, "Source IP --> %s\n", get_ip(start + 12, buffer));		// vypísanie zdrojovej ip adresy
-	fprintf(output, "Destination IP --> %s\n", get_ip(start + 12 + 4, buffer));	// vypísanie cielovej ip adresy
+	strfcat(line_buffer, "Source IP --> %s\n", get_ip(start + 12, buffer));		// vypísanie zdrojovej ip adresy
+	strfcat(line_buffer, "Destination IP --> %s\n", get_ip(start + 12 + 4, buffer));	// vypísanie cielovej ip adresy
 	
 	*ip_list = add_ip_address_to_list(convert_ip(get_ip(start+ 12, buffer)), *ip_list);		// pridanie adresy to listu ip adries
 	
 	short protocol_type = (short) buffer[start + 9];		// premenná pre èíslo protokolu
 	if ((strcmp(get_protocol_name(protocol_type), "TCP")) == 0) {
-		fprintf(output, "TCP (Transmission Control Protocol)");
-		print_tcp_flags(buffer[start + 33], output);
-		print_tcp(start + 12 + 4 + 4, buffer, output);
+		strfcat(line_buffer, "TCP (Transmission Control Protocol)");
+		print_tcp_flags(buffer[start + 33], line_buffer);
+		print_tcp(start + 12 + 4 + 4, buffer, line_buffer);
 	}
 	else if ((strcmp(get_protocol_name(protocol_type), "UDP")) == 0) {
-		fprintf(output, "UDP (User Datagram Protocol)\n");
-		print_udp(start + 12 + 4 + 4, buffer, output);
+		strfcat(line_buffer, "UDP (User Datagram Protocol)\n");
+		print_udp(start + 12 + 4 + 4, buffer, line_buffer);
 	}
 	else if ((strcmp(get_protocol_name(protocol_type), "ICMP")) == 0) {
-		fprintf(output, "ICMP (Internet Control Message Protocol)");
-		print_icmp(start + 12 + 4 + 4 + (ip_info_low * 4 - 20), buffer, output);
+		strfcat(line_buffer, "ICMP (Internet Control Message Protocol)");
+		print_icmp(start + 12 + 4 + 4 + (ip_info_low * 4 - 20), buffer, line_buffer);
 	}
 	else if ((strcmp(get_protocol_name(protocol_type), "EIGRP")) == 0)
-		fprintf(output, "EIGRP (Enhanced Interior Gateway Routing Protocol)\n");
+		strfcat(line_buffer, "EIGRP (Enhanced Interior Gateway Routing Protocol)\n");
 }
 
 int analyze(char* path, char filter, FILE* output) {
 	
-	if (filter > 0) {
-		output = fopen("temp.txt", "w");
-			
-	}
+	unsigned char* line_buffer = (char*) malloc((6*4096)*sizeof(char));
+	line_buffer[0] = '\0';
  	
 	int temp_int = get_ethernet_IEEE();		// inicializácia a nastavenie pomocnej premennej
 	
@@ -448,151 +459,165 @@ int analyze(char* path, char filter, FILE* output) {
 	
 	while (i < filelen) {		// cyklus pre vypísanie všetkıch rámcov
 		frame_length = build_frame_length(buffer[i], buffer[i+1], buffer[i+2], buffer[i+3]);	// vytvorenie dåky rámca
-		fprintf(output, "-----------------------------------------------------\n");		// vytlaèenie odde¾ovaèa
-		fprintf(output, "Frame Number --> %d\nFrame length available to pcap --> %d\n", frame_number, frame_length);		// vytlaèenie dåky rámca
-		if (frame_length <= 60) fprintf(output, "Frame length sent by medium --> 64\n\n");		// vytlaèenie dåky rámca
-		else fprintf(output, "Frame length sent by medium --> %d\n\n", frame_length + 4);		// vytlaèenie dåky rámca
+		strfcat(line_buffer, "-----------------------------------------------------\n");		// vytlaèenie odde¾ovaèa
+		strfcat(line_buffer, "Frame Number --> %d\nFrame length available to pcap --> %d\n", frame_number, frame_length);		// vytlaèenie dåky rámca
+		if (frame_length <= 60) strfcat(line_buffer, "Frame length sent by medium --> 64\n\n");		// vytlaèenie dåky rámca
+		else strfcat(line_buffer, "Frame length sent by medium --> %d\n\n", frame_length + 4);		// vytlaèenie dåky rámca
 		
 		destination_mac_address = cut_mac_address(i+8, buffer);		// nastavenie cie¾ovej adresy
 		source_mac_address = cut_mac_address(i+8+6, buffer);		// nastavenie zdrojovej adresy
 		type = cut_type(i+8+6+6, buffer);	// nastavenie premennej type
 		
 		if (type > temp_int) {
-			fprintf(output, "Ethernet II\n");
-			print_mac(0, source_mac_address, output);
-			print_mac(1, destination_mac_address, output);
+			strfcat(line_buffer, "Ethernet II\n");
+			print_mac(0, source_mac_address, line_buffer);
+			print_mac(1, destination_mac_address, line_buffer);
 			ethertype = get_protocol_name(type);
 			
 			if ((strcmp(ethertype, "IPV4")) == 0) {
-				print_ethernet_ip_protocol(i+8+6+6+2, buffer, &ip_list, output);
+				print_ethernet_ip_protocol(i+8+6+6+2, buffer, &ip_list, line_buffer);
 			}
 			else if ((strcmp(ethertype, "IPV6")) == 0) {
-				fprintf(output, "IPv6\n");
+				strfcat(line_buffer, "IPv6\n");
 			}
 			else if ((strcmp(ethertype, "ARP")) == 0) {
-				fprintf(output, "ARP (Address Resolution Protocol)");
+				strfcat(line_buffer, "ARP (Address Resolution Protocol)");
 				short opcode = (buffer[i+8+6+6+8] << 8) + buffer[i+8+6+6+8+1];
 				if (opcode == 1) {
-					fprintf(output, " - Request");
-					fprintf(output, "\nWho has %d.%d.%d.%d? Tell %d.%d.%d.%d", 
+					strfcat(line_buffer, " - Request");
+					strfcat(line_buffer, "\nWho has %d.%d.%d.%d? Tell %d.%d.%d.%d", 
 						buffer[i+8+6+6+8+18], buffer[i+8+6+6+8+19], buffer[i+8+6+6+8+20], buffer[i+8+6+6+8+21], 
 						buffer[i+8+6+6+8+8], buffer[i+8+6+6+8+9], buffer[i+8+6+6+8+10], buffer[i+8+6+6+8+11]);
 				}
 				else if (opcode == 2) {
-					fprintf(output, " - Reply");
-					fprintf(output, "\n%d.%d.%d.%d at ", 
+					strfcat(line_buffer, " - Reply");
+					strfcat(line_buffer, "\n%d.%d.%d.%d at ", 
 					buffer[i+8+6+6+8+8], buffer[i+8+6+6+8+9], buffer[i+8+6+6+8+10], buffer[i+8+6+6+8+11]);
-					print_mac(2, source_mac_address, output);
+					print_mac(2, source_mac_address, line_buffer);
 				}
-				fprintf(output, "\n");
+				strfcat(line_buffer, "\n");
 			}
 			else if ((strcmp(ethertype, "LOOP")) == 0) {
-				fprintf(output, "LOOP (Configuration Testing Protocol)\n");
+				strfcat(line_buffer, "LOOP (Configuration Testing Protocol)\n");
 			}
 			else if ((strcmp(ethertype, "LLDP")) == 0) {
-				fprintf(output, "LLDP (Link Layer Discovery Protocol)\n");
+				strfcat(line_buffer, "LLDP (Link Layer Discovery Protocol)\n");
 			}
 		}
 		else {
-			fprintf(output, "IEEE ");
+			strfcat(line_buffer, "IEEE ");
 			short iee_type = buffer[i + 8 + 14];
 			char* string_type = get_protocol_name(iee_type);
 			if ((strcmp(string_type, "SNAP")) == 0) {
-				fprintf(output, "802.3 LLC + SNAP ");
+				strfcat(line_buffer, "802.3 LLC + SNAP ");
 				short temp_number = (buffer[i + 8 + 20] << 8) + buffer[i + 8 + 21];
 				free(string_type);
 				string_type = get_protocol_name(temp_number);
 				
-				if ((strcmp(string_type, "CDP")) == 0) fprintf(output, "- Cisco Discovery Protocol\n");
-				else if ((strcmp(string_type, "IPV4")) == 0) fprintf(output, "- IPv4\n");
-				else if ((strcmp(string_type, "IPV6")) == 0) fprintf(output, "- IPv6\n");
-				else if ((strcmp(string_type, "ARP")) == 0) fprintf(output, "- ARP\n");
-				else if ((strcmp(string_type, "NOVELL_IPX")) == 0) fprintf(output, "- Novell IPX\n");
-				else if ((strcmp(string_type, "APPLE_TALK")) == 0) fprintf(output, "- AppleTalk\n");
-				else if ((strcmp(string_type, "APPLE_AARP")) == 0) fprintf(output, "- AppleTalk AARP\n");
-				else if ((strcmp(string_type, "DTP")) == 0) fprintf(output, "- Dynamic Trunk Protocol\n");
-				else fprintf(output, "\n");
+				if ((strcmp(string_type, "CDP")) == 0) strfcat(line_buffer, "- Cisco Discovery Protocol\n");
+				else if ((strcmp(string_type, "IPV4")) == 0) strfcat(line_buffer, "- IPv4\n");
+				else if ((strcmp(string_type, "IPV6")) == 0) strfcat(line_buffer, "- IPv6\n");
+				else if ((strcmp(string_type, "ARP")) == 0) strfcat(line_buffer, "- ARP\n");
+				else if ((strcmp(string_type, "NOVELL_IPX")) == 0) strfcat(line_buffer, "- Novell IPX\n");
+				else if ((strcmp(string_type, "APPLE_TALK")) == 0) strfcat(line_buffer, "- AppleTalk\n");
+				else if ((strcmp(string_type, "APPLE_AARP")) == 0) strfcat(line_buffer, "- AppleTalk AARP\n");
+				else if ((strcmp(string_type, "DTP")) == 0) strfcat(line_buffer, "- Dynamic Trunk Protocol\n");
+				else strfcat(line_buffer, "\n");
 			}
 			else if ((strcmp(string_type, "RAW")) == 0) {
-				fprintf(output, "802.3 Raw - IPX ");
+				strfcat(line_buffer, "802.3 Raw - IPX ");
 				short temp_number = (buffer[i + 8 + 30] << 8) + buffer[i + 8 + 31];
 				free(string_type);
 				string_type = get_protocol_name(temp_number);
 				
-				if ((strcmp(string_type, "RIP")) == 0) fprintf(output, "- Routing Information Protocol\n");
-				else if ((strcmp(string_type, "SAP")) == 0) fprintf(output, "- Service Advertising Protocol\n");
-				else if ((strcmp(string_type, "NBIPX")) == 0) fprintf(output, "- NetBIOS\n");
-				else if ((strcmp(string_type, "IPX")) == 0) fprintf(output, "- Internetwork Packet Exchange\n");
-				else if ((strcmp(string_type, "TCP_IPX")) == 0) fprintf(output, "- TCP over IPX\n");
-				else if ((strcmp(string_type, "UDP_IPX")) == 0) fprintf(output, "- UDP over IPX\n");
-				else fprintf(output, "\n");
+				if ((strcmp(string_type, "RIP")) == 0) strfcat(line_buffer, "- Routing Information Protocol\n");
+				else if ((strcmp(string_type, "SAP")) == 0) strfcat(line_buffer, "- Service Advertising Protocol\n");
+				else if ((strcmp(string_type, "NBIPX")) == 0) strfcat(line_buffer, "- NetBIOS\n");
+				else if ((strcmp(string_type, "IPX")) == 0) strfcat(line_buffer, "- Internetwork Packet Exchange\n");
+				else if ((strcmp(string_type, "TCP_IPX")) == 0) strfcat(line_buffer, "- TCP over IPX\n");
+				else if ((strcmp(string_type, "UDP_IPX")) == 0) strfcat(line_buffer, "- UDP over IPX\n");
+				else strfcat(line_buffer, "\n");
 			}
 			else {
-				fprintf(output, "802.3 LLC ");
+				strfcat(line_buffer, "802.3 LLC ");
 				
-				if ((strcmp(string_type, "NULL_SAP")) == 0) fprintf(output, "- NULL SAP\n");
-				else if ((strcmp(string_type, "LLC_SM_I")) == 0) fprintf(output, "- LLC Sublayer Management Individual\n");
-				else if ((strcmp(string_type, "LLC_SM_G")) == 0) fprintf(output, "- LLC Sublayer Management Group\n");
-				else if ((strcmp(string_type, "STP")) == 0) fprintf(output, "- Spanning Tree Protocol\n");
-				else if ((strcmp(string_type, "ISI_IP")) == 0) fprintf(output, "- ISI IP\n");
-				else if ((strcmp(string_type, "X25_PLP")) == 0) fprintf(output, "- X25.PLP\n");
-				else if ((strcmp(string_type, "LAN_MNGMT")) == 0) fprintf(output, "- LAN Management\n");
+				if ((strcmp(string_type, "NULL_SAP")) == 0) strfcat(line_buffer, "- NULL SAP\n");
+				else if ((strcmp(string_type, "LLC_SM_I")) == 0) strfcat(line_buffer, "- LLC Sublayer Management Individual\n");
+				else if ((strcmp(string_type, "LLC_SM_G")) == 0) strfcat(line_buffer, "- LLC Sublayer Management Group\n");
+				else if ((strcmp(string_type, "STP")) == 0) strfcat(line_buffer, "- Spanning Tree Protocol\n");
+				else if ((strcmp(string_type, "ISI_IP")) == 0) strfcat(line_buffer, "- ISI IP\n");
+				else if ((strcmp(string_type, "X25_PLP")) == 0) strfcat(line_buffer, "- X25.PLP\n");
+				else if ((strcmp(string_type, "LAN_MNGMT")) == 0) strfcat(line_buffer, "- LAN Management\n");
 				else if ((strcmp(string_type, "LLC_IPX")) == 0) {
-					fprintf(output, "- IPX ");
+					strfcat(line_buffer, "- IPX ");
 					short temp_number = (buffer[i + 8 + 33] << 8) + buffer[i + 8 + 34];
 					free(string_type);
 					string_type = get_protocol_name(temp_number);
-					if ((strcmp(string_type, "SAP")) == 0) fprintf(output, "- Service Advertising Protocol\n");
-					else if ((strcmp(string_type, "NBIPX")) == 0) fprintf(output, "NetBIOS over IPX\n");
-					else fprintf(output, "\n");
+					if ((strcmp(string_type, "SAP")) == 0) strfcat(line_buffer, "- Service Advertising Protocol\n");
+					else if ((strcmp(string_type, "NBIPX")) == 0) strfcat(line_buffer, "NetBIOS over IPX\n");
+					else strfcat(line_buffer, "\n");
 				}
-				else if ((strcmp(string_type, "LLC_NETBIOS")) == 0) fprintf(output, "- NetBIOS\n");
-				else if ((strcmp(string_type, "NBIPX")) == 0) fprintf(output, "- NetBIOS over IPX\n");
+				else if ((strcmp(string_type, "LLC_NETBIOS")) == 0) strfcat(line_buffer, "- NetBIOS\n");
+				else if ((strcmp(string_type, "NBIPX")) == 0) strfcat(line_buffer, "- NetBIOS over IPX\n");
 			}
 			
 			free(string_type);	
-			print_mac(0, source_mac_address, output);		// vytlaèenie zdrojovej mac adresy
-			print_mac(1, destination_mac_address, output);	// vytlaèenie cielovej mac adresy
+			print_mac(0, source_mac_address, line_buffer);		// vytlaèenie zdrojovej mac adresy
+			print_mac(1, destination_mac_address, line_buffer);	// vytlaèenie cielovej mac adresy
 		}
 		
-		fprintf(output, "\n");
-		print_frame(i+8, buffer, frame_length, output);		// vytlaèenie celého ramca
+		strfcat(line_buffer, "\n");
+		print_frame(i+8, buffer, frame_length, line_buffer);		// vytlaèenie celého ramca
 		i += frame_length + 16;
 		frame_number++;
-		fprintf(output, "\n");
+		strfcat(line_buffer, "\n");
 		free(destination_mac_address);		// uvo¾nenie pamäte
 		free(source_mac_address);		// uvo¾nenie pamäte
+		
+		if (filter == 0)fprintf(output, "%s", line_buffer);
+		else if (filter == 1 && strstr(line_buffer, "ARP")) fprintf(output, "%s", line_buffer); 
+		else if (filter == 2 && strstr(line_buffer, "HTTP")) fprintf(output, "%s", line_buffer);
+		else if (filter == 3 && strstr(line_buffer, "HTTPS")) fprintf(output, "%s", line_buffer);
+		else if (filter == 4 && strstr(line_buffer, "TELNET")) fprintf(output, "%s", line_buffer);
+		else if (filter == 5 && strstr(line_buffer, "SSH")) fprintf(output, "%s", line_buffer);
+		else if (filter == 6 && strstr(line_buffer, "FTP")) fprintf(output, "%s", line_buffer);
+		else if (filter == 7 && strstr(line_buffer, "TFTP")) fprintf(output, "%s", line_buffer);
+		else if (filter == 8 && strstr(line_buffer, "ICMP")) fprintf(output, "%s", line_buffer);
+		line_buffer[0] = '\0';
 		}
-	fprintf(output, "-----------------------------------------------------\n");		// vytlaèenie odde¾ovaèa
+	free(line_buffer);
 	
-	unsigned int max_count = 0;		// inicializácia premennej poèítadla maxím
-	struct List* temp = ip_list;	// inicializácia a nastavenie pomocného smerníka
-	unsigned int maximum = ip_list->count;		// inicializácia a nastavenie maxima
-	fprintf(output, "Source IPv4 Addresses	Count\n");		// informaèná správa
-	while (temp != NULL) {		// prechod celım spájanım zoznamom a vytlaèenie jednotlivıch ip adries s príslušnımi poèetnosami
-		fprintf(output, "%d.%d.%d.%d		%d\n", (temp->ip_address >> 24) & 255, (temp->ip_address >> 16) & 255, 
-			(temp->ip_address >> 8) & 255, temp->ip_address & 255, temp->count);
-		if (temp->count > maximum) {
-			maximum = temp->count;
-			max_count = 0;
+	
+	if (filter == 0) {
+		fprintf(output, "-----------------------------------------------------\n");		// vytlaèenie odde¾ovaèa
+		unsigned int max_count = 0;		// inicializácia premennej poèítadla maxím
+		struct List* temp = ip_list;	// inicializácia a nastavenie pomocného smerníka
+		unsigned int maximum = ip_list->count;		// inicializácia a nastavenie maxima
+		fprintf(output, "Source IPv4 Addresses	Count\n");		// informaèná správa
+		while (temp != NULL) {		// prechod celım spájanım zoznamom a vytlaèenie jednotlivıch ip adries s príslušnımi poèetnosami
+			fprintf(output, "%d.%d.%d.%d		%d\n", (temp->ip_address >> 24) & 255, (temp->ip_address >> 16) & 255, 
+				(temp->ip_address >> 8) & 255, temp->ip_address & 255, temp->count);
+			if (temp->count > maximum) {
+				maximum = temp->count;
+				max_count = 0;
+			}
+			if (temp->count == maximum) max_count++;
+			temp = temp->next;
 		}
-		if (temp->count == maximum) max_count++;
-		temp = temp->next;
-	}
 	
-	temp = ip_list; // vytlaèenie najpoèetnejších ip adries/ ip adresy
-	if (max_count > 1) fprintf(output, "\nHighest number of packets %d was sent by these IP addresses:\n", maximum);
-	else if (max_count == 1) fprintf(output, "\nHighest number of packets %d was sent by this IP address:\n", maximum);
-	while (temp != NULL) {
-		if (temp->count == maximum) fprintf(output, "%d.%d.%d.%d\n", (temp->ip_address >> 24) & 255, (temp->ip_address >> 16) & 255, 
-		(temp->ip_address >> 8) & 255, temp->ip_address & 255);
-		temp = temp->next;
+		temp = ip_list; // vytlaèenie najpoèetnejších ip adries/ ip adresy
+		if (max_count > 1) fprintf(output, "\nHighest number of packets %d was sent by these IP addresses:\n", maximum);
+		else if (max_count == 1) fprintf(output, "\nHighest number of packets %d was sent by this IP address:\n", maximum);
+		while (temp != NULL) {
+			if (temp->count == maximum) fprintf(output, "%d.%d.%d.%d\n", (temp->ip_address >> 24) & 255, (temp->ip_address >> 16) & 255, 
+			(temp->ip_address >> 8) & 255, temp->ip_address & 255);
+			temp = temp->next;
+		}
 	}
+
 	
-	if (filter > 0) {
-		fclose(output);
-		remove("temp.txt");
-	}
+	
+	
 	free(buffer);	// uvo¾nenie pamäti
 	free(ip_list);	// uvo¾nenie pamäti
 	return 0;
