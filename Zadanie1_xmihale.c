@@ -5,11 +5,11 @@
 #define CONSTANTS_FILE "Constants.txt"		//textovı súbor, kde sa nachádzajú konštanty resp. èísla jednotlivıch protokolov
 
 
-struct Cmd {
-	char path[80];
-	char filename[80];
-	char filter;
-	char redirect;
+struct Cmd {			// štruktúra pre zadávanie príkazov po spustení programu
+	char path[80];			// premenná na uchovanie absolutnej cesty k .pcap súboru
+	char filename[80];		// premenná na uchovanie absolutnej cesty k vıstpunému súboru
+	char filter;			// premenná na uchovanie èísla protokolu, ktorı sa bude filtrova
+	char redirect;			// premenná, ktorá slúi na presmerovanie vıstupu
 };
 
 struct List {		// štruktúra spájaného zoznamu, ktorá uchováva jednotlivé ip adresy a ich poèetnos v konkrétnom .pcap súbore
@@ -18,8 +18,8 @@ struct List {		// štruktúra spájaného zoznamu, ktorá uchováva jednotlivé ip adre
 	struct List* next;		// smerník na ïalší záznam
 };
 
-void strfcat(char* source, char* format, ...) {
-	char buffer[2048];
+void strfcat(char* source, char* format, ...) {		// funkcia, ktorá spája formátované stringy
+	char buffer[2048];	
 	va_list args;
 	
 	va_start(args, format);
@@ -28,7 +28,6 @@ void strfcat(char* source, char* format, ...) {
 	
 	strcat(source, buffer);
 }
-
 
 unsigned int convert_ip(char* string_ip) {		// funkcia konvertuje textovú formu ip adresy na èíselnú, aby sa mohla zapísa do spájaného zoznamu
 	
@@ -425,7 +424,7 @@ void print_ethernet_ip_protocol(int start, unsigned char* buffer, struct List** 
 		strfcat(line_buffer, "EIGRP (Enhanced Interior Gateway Routing Protocol)\n");
 }
 
-int analyze(char* path, char filter, FILE* output) {
+int analyze(char* path, char filter, FILE* output) {		// funkcia analyzuje jednotlivé rámce v súbore .pcap
 	
 	unsigned char* line_buffer = (char*) malloc((6*4096)*sizeof(char));
 	line_buffer[0] = '\0';
@@ -574,6 +573,7 @@ int analyze(char* path, char filter, FILE* output) {
 		free(destination_mac_address);		// uvo¾nenie pamäte
 		free(source_mac_address);		// uvo¾nenie pamäte
 		
+		// následnı if-else block sa stará o vypísanie konkrétneho filtra
 		if (filter == 0)fprintf(output, "%s", line_buffer);
 		else if (filter == 1 && strstr(line_buffer, "ARP")) fprintf(output, "%s", line_buffer); 
 		else if (filter == 2 && strstr(line_buffer, "HTTP")) fprintf(output, "%s", line_buffer);
@@ -585,7 +585,7 @@ int analyze(char* path, char filter, FILE* output) {
 		else if (filter == 8 && strstr(line_buffer, "ICMP")) fprintf(output, "%s", line_buffer);
 		line_buffer[0] = '\0';
 		}
-	free(line_buffer);
+	free(line_buffer);		// uvo¾nenie pamäte
 	
 	
 	if (filter == 0) {
@@ -623,18 +623,18 @@ int analyze(char* path, char filter, FILE* output) {
 	return 0;
 }
 
-
-struct Cmd* decode(char* buffer) {
-	struct Cmd* result = (struct Cmd*) malloc(sizeof(struct Cmd));
-	result->path[0] = '\0';
+struct Cmd* decode(char* buffer) {		// funkcia na základe pouívate¾ského vstupu vo formáte string, vyparsuje danı string a prerobí ho do štruktúry Cmd
+	struct Cmd* result = (struct Cmd*) malloc(sizeof(struct Cmd));	// inicializácia smernáka na Cmd
+	result->path[0] = '\0';		// inicializácia jednotlivıch premennıch
 	result->filename[0] = '\0';
 	result->redirect = 0;
 	result->filter = 0;
 	char filter[10];
 	int i = 0;
 	
-		
-	while (buffer[i] != ' ') {
+	
+	
+	while (buffer[i] != ' ') {	// naplnenie premennej path (abosolutná cesta k input súboru)	
 		if (buffer[i] == '\0') {
 			result->path[i] = '\0';
 			return result;
@@ -647,7 +647,7 @@ struct Cmd* decode(char* buffer) {
 	i++;
 	
 	int k = 0;
-	if (buffer[i] == '-') {
+	if (buffer[i] == '-') {		//naplnenie premennej filter, pod¾a elaného protokolu
 		i++;
 		while (buffer[i] != ' ') {
 			if (buffer[i] == '\0') break;
@@ -668,8 +668,9 @@ struct Cmd* decode(char* buffer) {
 	}
 	
 
+	
 	k = 0;
-	if (buffer[i] == '>' && buffer[i+1] == '>') {
+	if (buffer[i] == '>' && buffer[i+1] == '>'){ //naplnenie premennej filename (output file pre vıpisy rámcov)
 		i += 3;
 		while(buffer[i] != ' ') {
 			if (buffer[i] == '\0') break;
@@ -682,38 +683,38 @@ struct Cmd* decode(char* buffer) {
 	}
 	
 	
-	return result;
+	return result;		// návratová hodnota je vytvorenı smerník, ktorı bude naplnenı potrebnımi dátami
 }
 
 
 int main() {
-	char* command = (char*) malloc(150 * sizeof(char));
-	struct Cmd* scommand = NULL;
+	char* command = (char*) malloc(150 * sizeof(char));			//alokácia pamäte pre príkaz od pouívate¾a	
+	struct Cmd* scommand = NULL;								//inicializácia smerníka pre vyparsovanı príkaz
 	
 	printf("Enter Command or valid Path to your .pcap file >> ");
-	while (scanf("%[^\n]%*c", command)) {	
-		if ((strcmp((const char*) command,"end")) == 0) break;
-		else if ((strcmp((const char*) command,"help")) == 0) {
+	while (scanf("%[^\n]%*c", command)) {						// naskenuj vstup od pouívate¾a
+		if ((strcmp((const char*) command,"end")) == 0) break;		//ak pouívate¾ zadal príkaz "end" ukonèi program
+		else if ((strcmp((const char*) command,"help")) == 0) {		//ak pouívate¾ zadal príkaz "help" vypíš help menu
 			printf("Enter Path to your .pcap file to run the program\n\tType '>> filename' after your Path to redirect output to your file (.txt format)\n\tType -PROTOCOL_NAME after your Path to filter the frames\n");
 			printf("----------------------------------------------\nType 'end' to terminate the program\n");
 		}
-		else {
-			scommand = decode(command);
-			if (scommand->redirect == 0) analyze(scommand->path, scommand->filter, stdout);
-			else {
-				printf("\nOpening .txt file %s\n", scommand->filename);
+		else {			//spracovanie príkazu a následná analıza rámcov
+			scommand = decode(command);		// funkcia, ktorá vyparsuje príkaz a premení ho na vhodnejšiu štruktúru
+			if (scommand->redirect == 0) analyze(scommand->path, scommand->filter, stdout);		// ak sa redirect nenastavil na 1 tak vypíš rámce na štandardnı vıstup
+			else {		// v opaènom prípade otvor output file a nakopíruj jednotlivé rámce doòho
+				printf("\nOpening .txt file %s\n", scommand->filename);	
 				FILE* file = fopen(scommand->filename, "w");
 				printf("Analyzing ...\n");
 				analyze(scommand->path, scommand->filter, file);
 				printf("Closing .txt file %s\n", scommand->filename);
-				fclose(file);
+				fclose(file);		// zatvorenie súboru
 			}
-			free(scommand);
-			printf("\nDone!\n\n");
+			free(scommand);		// uvo¾nenie pamäti
+			printf("\nDone!\n\n");	// informáèná správa, e všetky rámce sa vypísali
 		}
-		printf("Enter Command or valid Path to your .pcap file >> ");
+		printf("Enter Command or valid Path to your .pcap file >> ");		// správa pre pouívate¾a, e môe zada ïalší príkaz
 	}
-	free(command);
+	free(command);		// uvo¾nenie pamäti
 	
 	return 0;
 }
